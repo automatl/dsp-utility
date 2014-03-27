@@ -1,5 +1,5 @@
-#ifndef TOMATL_ENVELOPE_WALKER
-#define TOMATL_ENVELOPE_WALKER
+#ifndef TOMATL_SIMPLE_WINDOWED_DFT
+#define TOMATL_SIMPLE_WINDOWED_DFT
 
 namespace tomatl { namespace dsp {
 
