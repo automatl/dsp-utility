@@ -6,7 +6,7 @@ namespace tomatl { namespace dsp {
 template <typename T> class SimpleWindowedDft
 {
 public:
-	NaiveFt(int length) : mLength(length), mCounter(0)
+	SimpleWindowedDft(int length) : mLength(length), mCounter(0)
 	{
 		mInput = new T[mLength];
 		mOutput = new T[mLength];
@@ -20,16 +20,24 @@ public:
 
 		for (int i = 0; i < mLength; ++i)
 		{
+#ifndef PI
+#define PI 3.14159265359
+#endif
 			// Blackman-Harris window
 			mPrecomputedWindowFunction[i] = (a0 - a1 * std::cos(2 * PI * i / (mLength - 1)) + a2 * cos(4 * PI * i / (mLength - 1)) - a3 * cos(6 * PI * i / (mLength - 1)));
 		}
 	}
 
-	~NaiveFt()
+	~SimpleWindowedDft()
 	{
 		delete[] mInput;
 		delete[] mOutput;
 		delete[] mDoubleInput;
+	}
+
+	T* getOutput()
+	{
+		return mOutput;
 	}
 
 	T* push(T* value)
@@ -128,6 +136,8 @@ private:
 			}
 		}
 	}
+
+
 
 	void demultiplexOutput()
 	{

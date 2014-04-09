@@ -3,9 +3,6 @@
 
 namespace tomatl { namespace dsp {
 
-// TODO: add Bounds2d
-// TODO: add LogScale
-
 template <typename T> struct SingleBound
 {
 	SingleBound(T low, T high)
@@ -16,6 +13,17 @@ template <typename T> struct SingleBound
 
 	T mLow;
 	T mHigh;
+};
+
+template <typename T> struct Bound2D
+{
+	Bound2D() : X(0, 0), Y(0, 0)
+	{
+
+	}
+
+	SingleBound<T> X;
+	SingleBound<T> Y;
 };
 
 template <typename T> class IScale
@@ -38,6 +46,47 @@ public:
 		{
 			return value;
 		}
+	}
+
+	static double log(double x, double base)
+	{
+		return std::log(x) / std::log(base);
+	}
+};
+
+class LogScale : public IScale<double>
+{
+public: 
+	LogScale() { }
+
+	int scale(int length, SingleBound<double> bound, double val, bool limit = false)
+	{
+		if (limit)
+		{
+			val = doLimitValue(val, bound.mLow, bound.mHigh);
+		}
+
+		double range = std::abs(bound.mHigh - bound.mLow);
+
+		double expBase = std::pow(range, (1.0 / (double)length));
+		
+		return (int)round(log(val - bound.mLow + 1, expBase));
+	}
+
+	double unscale(int length, SingleBound<double> bound, int val, bool limit = false)
+	{
+		double range = std::abs(bound.mHigh - bound.mLow);
+
+		double expBase = std::pow(range, (1.0 / (double)length));
+
+		double value = std::pow(expBase, ((double)val)) + bound.mLow - 1;
+
+		if (limit)
+		{
+			value = doLimitValue(value, bound.mLow, bound.mHigh);
+		}
+
+		return value;
 	}
 };
 
