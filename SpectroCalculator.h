@@ -9,17 +9,21 @@ namespace tomatl { namespace dsp {
 		{
 			mLength = 0;
 			mData = NULL;
+			mIndex = 0;
+			mSampleRate = 0;
 		}
 
-		SpectrumBlock(size_t size, std::pair<double, double>* data, size_t index)
+		SpectrumBlock(size_t size, std::pair<double, double>* data, size_t index, size_t sampleRate)
 		{
 			mLength = size;
 			mData = data;
 			mIndex = index;
+			mSampleRate = sampleRate;
 		}
 
 		size_t mLength;
 		size_t mIndex;
+		size_t mSampleRate;
 		std::pair<double, double>* mData;
 	};
 
@@ -66,7 +70,7 @@ namespace tomatl { namespace dsp {
 			{
 				for (int bin = 0; bin < (mFftSize / 2.); ++bin)
 				{
-					T freq = bin * sampleRate / mFftSize;
+					
 
 					T ampl = 0.;
 
@@ -77,8 +81,7 @@ namespace tomatl { namespace dsp {
 						T* mFftCos = ftResult + mFftSize / 2;
 
 						// TODO: figure out correct scale
-
-						T nw = std::sqrt(mFftSin[bin] * mFftSin[bin] + mFftCos[bin] * mFftCos[bin]) / (float)mFftSize;
+						T nw = 4 * std::sqrt(mFftSin[bin] * mFftSin[bin] + mFftCos[bin] * mFftCos[bin]) / (float)mFftSize;
 
 						ampl = std::max(nw, ampl);
 					}
@@ -87,11 +90,11 @@ namespace tomatl { namespace dsp {
 
 					EnvelopeWalker::staticProcess(&ampl, &prev, &mAttackRelease.first, &mAttackRelease.second, &sampleRate);
 
-					mData[bin].first = freq;
+					mData[bin].first = bin;
 					mData[bin].second = prev;
 				}
 
-				return SpectrumBlock(mFftSize / 2., mData, mIndex);
+				return SpectrumBlock(mFftSize / 2., mData, mIndex, sampleRate);
 			}
 			else
 			{
