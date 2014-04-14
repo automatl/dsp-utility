@@ -35,9 +35,12 @@ public:
 
 	EnvelopeWalker& setSampleRate(double sampleRate)
 	{
-		m_sampleRate = sampleRate;
-		setAttackSpeed(m_attackMs);
-		setReleaseSpeed(m_releaseMs);
+		if (sampleRate != m_sampleRate)
+		{
+			m_sampleRate = sampleRate;
+			setAttackSpeed(m_attackMs);
+			setReleaseSpeed(m_releaseMs);
+		}
 
 		return *this;
 	}

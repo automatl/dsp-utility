@@ -7,28 +7,29 @@ namespace tomatl { namespace dsp {
 template<typename T> class GonioCalculator
 {
 public:
-	GonioCalculator(size_t segmentLength = 512, std::pair<double, double> autoAttackRelease = std::pair<double, double>(0.01, 5000)) : mData(NULL), mProcCounter(0)
+	GonioCalculator(size_t segmentLength = 512, size_t sampleRate = 48000, std::pair<double, double> autoAttackRelease = std::pair<double, double>(0.01, 5000))
+		: mData(NULL), mProcCounter(0)
 	{
 		setSegmentLength(segmentLength);
 		mSqrt2 = std::pow(2., 0.5);
 		mEnvelope.setAttackSpeed(autoAttackRelease.first);
 		mEnvelope.setReleaseSpeed(autoAttackRelease.second);
-		mEnvelope.setSampleRate(48000); // TODO: listen to sample rate changes somehow (universal solution? interface?)
+		mEnvelope.setSampleRate(sampleRate);
 		
 	}
 
-	std::pair<T, T>* handlePoint(const std::pair<T, T>& subject)
+	std::pair<T, T>* handlePoint(const std::pair<T, T>& subject, size_t sampleRate)
 	{
 		std::pair<T, T> point(subject);
+		mEnvelope.setSampleRate(sampleRate);
 		
 		Coord<T>::toPolar(point);
 		Coord<T>::rotatePolarDegrees(point, -45.);
 
 		// Scale auto-adjusting. We tend to use max space available even if our signal is not normalized to 0dB
-		// TODO: implement custom scale mode (high cap between 0..1)
-		double m = std::max(0.01, 1. / mEnvelope.process(point.first));
-		// TODO: apply limit to scale auto expantion (when silence is passed, for example) (maybe also controllable)
-		point.first *= m;
+		double m = std::max(0.01, 1. / mEnvelope.process(point.first)); // 0.01 is limit not to expand beneath -40dB
+		
+		point.first *= mCustomScaleEnabled ? (1. / mCustomScale) : m;
 
 		Coord<T>::toCartesian(point);
 
@@ -51,11 +52,11 @@ public:
 		}
 	}
 
-	std::pair<T, T>* handlePoint(const T& x, const T& y)
+	std::pair<T, T>* handlePoint(const T& x, const T& y, size_t sampleRate)
 	{
 		std::pair<T, T> point(x, y);
 
-		return handlePoint(point);
+		return handlePoint(point, sampleRate);
 	}
 
 	GonioCalculator& setSegmentLength(size_t segmentLength)
@@ -81,11 +82,16 @@ public:
 		return mEnvelope.getCurrentValue();
 	}
 
+	void setCustomScaleEnabled(bool value) { mCustomScaleEnabled = value; }
+	void setCustomScale(double value) { mCustomScale = TOMATL_BOUND_VALUE(value, 0., 1.); }
+
 private:
 	size_t mSegmentLength;
 	std::pair<T, T>* mData;
 	unsigned int mProcCounter;
 	double mSqrt2;
+	bool mCustomScaleEnabled = false;
+	double mCustomScale = 1.0;
 	tomatl::dsp::EnvelopeWalker mEnvelope;
 };
 
