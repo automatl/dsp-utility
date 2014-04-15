@@ -29,7 +29,9 @@ public:
 		// Scale auto-adjusting. We tend to use max space available even if our signal is not normalized to 0dB
 		double m = std::max(0.01, 1. / mEnvelope.process(point.first)); // 0.01 is limit not to expand beneath -40dB
 		
-		point.first *= mCustomScaleEnabled ? (1. / mCustomScale) : m;
+		mLastScale = mCustomScaleEnabled ? (1. / mCustomScale) : m;
+
+		point.first *= mLastScale;
 
 		Coord<T>::toCartesian(point);
 
@@ -79,7 +81,7 @@ public:
 
 	double getCurrentScaleValue()
 	{
-		return mEnvelope.getCurrentValue();
+		return mLastScale;
 	}
 
 	void setCustomScaleEnabled(bool value) { mCustomScaleEnabled = value; }
@@ -92,6 +94,7 @@ private:
 	double mSqrt2;
 	bool mCustomScaleEnabled = false;
 	double mCustomScale = 1.0;
+	double mLastScale = 1.0;
 	tomatl::dsp::EnvelopeWalker mEnvelope;
 };
 

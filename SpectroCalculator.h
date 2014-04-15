@@ -101,6 +101,7 @@ namespace tomatl { namespace dsp {
 				return SpectrumBlock();
 			}
 		}
+
 	private:
 		std::vector<SimpleWindowedDft<T>*> mDfts;
 		std::pair<double, double>* mData;
