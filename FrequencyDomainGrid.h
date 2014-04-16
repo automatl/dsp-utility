@@ -11,11 +11,11 @@ namespace tomatl{ namespace dsp{
 		tomatl::dsp::LinearScale mMagnitudeScale; // As we use dB values the scale is linear
 		tomatl::dsp::Bound2D<double> mBounds;
 		tomatl::dsp::Bound2D<double> mFullBounds;
-		double* mFreqCache = NULL;
-		size_t mSampleRate = 0;
-		size_t mBinCount = 0;
-		size_t mWidth = 0;
-		size_t mHeight = 0;
+		double* mFreqCache;
+		size_t mSampleRate;
+		size_t mBinCount;
+		size_t mWidth;
+		size_t mHeight;
 		
 		FrequencyDomainGrid(){}
 		FrequencyDomainGrid(const FrequencyDomainGrid&){}
@@ -83,6 +83,7 @@ namespace tomatl{ namespace dsp{
 			mBinCount = binCount;
 			mWidth = width;
 			mHeight = height;
+			mFreqCache = NULL;
 
 			prepareFreqCache();
 		}
