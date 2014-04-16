@@ -70,9 +70,12 @@ namespace tomatl{ namespace dsp{
 				mCaption = caption;
 			}
 
-			int mLocation = 0;
-			double mValue = 0.;
-			std::wstring mCaption = L"";
+			GridLine() : mLocation(0), mValue(0.), mCaption(L"") {}
+		
+
+			int mLocation;
+			double mValue;
+			std::wstring mCaption;
 		};
 
 		FrequencyDomainGrid(Bound2D<double> fullBounds, size_t sampleRate = 0, size_t binCount = 0, size_t width = 0, size_t height = 0)
