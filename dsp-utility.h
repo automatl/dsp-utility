@@ -17,12 +17,16 @@
 	#define TOMATL_BOUND_VALUE(x, minval, maxval) std::min((maxval), std::max((x), (minval)))
 #endif
 
+#ifndef TOMATL_IS_IN_BOUNDS_INCLUSIVE(x, minval, maxval)
+	#define TOMATL_IS_IN_BOUNDS_INCLUSIVE(x, minval, maxval) (x >= minval && x <= maxval)
+#endif
+
 #ifndef TOMATL_TO_DB(x)
-	#define TOMATL_TO_DB(x) 20 * std::log10(x)
+	#define TOMATL_TO_DB(x) (20. * std::log10(x))
 #endif
 
 #ifndef TOMATL_FROM_DB(x)
-	#define TOMATL_FROM_DB(x) std::pow(2, x / 6)
+	#define TOMATL_FROM_DB(x) (std::pow(2., x / 6.))
 #endif
 
 #include "spsc_queue.h"
@@ -32,5 +36,6 @@
 #include "GonioCalculator.h"
 #include "SimpleWindowedDft.h"
 #include "SpectroCalculator.h"
+#include "FrequencyDomainGrid.h"
 
 #endif

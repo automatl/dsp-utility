@@ -22,6 +22,16 @@ template <typename T> struct Bound2D
 
 	}
 
+	Bound2D(T xl, T xh, T yl, T yh) : X(xl, xh), Y(yl, yh)
+	{
+
+	}
+
+	bool areEqual(const Bound2D<T>& other)
+	{
+		return (other.X.mLow == X.mLow && other.X.mHigh == X.mHigh && other.Y.mLow == Y.mLow && other.Y.mHigh == Y.mHigh);
+	}
+
 	SingleBound<T> X;
 	SingleBound<T> Y;
 };
@@ -101,12 +111,12 @@ public:
 		{
 			val = doLimitValue(val, bound.mLow, bound.mHigh);
 		}
-		
+
 		double octaveCount = std::log2(bound.mHigh) - std::log2(bound.mLow);
 		double pixelPerOctave = length / octaveCount;
-		double offset = std::abs(std::log2(bound.mLow / pixelPerOctave) * pixelPerOctave);
+		double offset = std::round(std::log2(bound.mLow / pixelPerOctave) * pixelPerOctave);
 		
-		return (int)std::round(std::log2(val / pixelPerOctave) * pixelPerOctave + offset);
+		return (int)std::round(std::log2(val / pixelPerOctave) * pixelPerOctave - offset);
 	}
 
 	virtual double unscale(int length, SingleBound<double> bound, int val, bool limit = false)
@@ -115,6 +125,7 @@ public:
 		double pixelPerOctave = length / octaveCount;
 		double offset = std::abs(std::log2(bound.mLow / pixelPerOctave) * pixelPerOctave);
 
+		// TODO: fix offset being incorrectly calculated and applied
 		double value = pixelPerOctave * std::pow(2., ((val - offset) / pixelPerOctave));
 
 		if (limit)
