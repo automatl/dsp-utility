@@ -13,6 +13,9 @@ public:
 		mDoubleInput = new T[mLength * 2];
 		mPrecomputedWindowFunction = new T[mLength];
 
+		// After windowing input signal, it obviously becomes "more quiet", so we're need to compensate that (http://alpha.science.unitn.it/~bassi/Signal/NInotes/an041.pdf)
+		mWindowingScalingFactor = 0.42; 
+
 		T a0 = 0.35875;
 		T a1 = 0.48829;
 		T a2 = 0.14128;
@@ -54,8 +57,8 @@ public:
 			res = mOutput;
 		}
 
-		mInput[mCounter] = *value * mPrecomputedWindowFunction[mCounter];
-		mDoubleInput[mCounter * 2] = *value * mPrecomputedWindowFunction[mCounter];
+		mInput[mCounter] = *value * mPrecomputedWindowFunction[mCounter] / mWindowingScalingFactor;
+		mDoubleInput[mCounter * 2] = *value * mPrecomputedWindowFunction[mCounter] / mWindowingScalingFactor;
 		mDoubleInput[mCounter * 2 + 1] = 0.;
 
 		mCounter++;
@@ -173,6 +176,7 @@ private:
 
 	int mLength;
 	int mCounter;
+	double mWindowingScalingFactor;
 	T* mInput;
 	T* mDoubleInput;
 	T* mOutput;

@@ -194,11 +194,11 @@ namespace tomatl{ namespace dsp{
 
 			if (freq >= 1000)
 			{
-				swprintf(buffer, L"%dk", (int)freq / 1000);
+				swprintf(buffer, 50, L"%dk", (int)freq / 1000);
 			}
 			else
 			{
-				swprintf(buffer, L"%d", (int)freq);
+				swprintf(buffer, 50, L"%d", (int)freq);
 			}
 
 			return std::wstring(buffer);
@@ -209,7 +209,7 @@ namespace tomatl{ namespace dsp{
 			wchar_t buffer[50];
 			memset(&buffer, 0x0, 50);
 
-			swprintf(buffer, L"%+d", (int)ampl);
+			swprintf(buffer, 50, L"%+d", (int)ampl);
 
 			return std::wstring(buffer);
 		}

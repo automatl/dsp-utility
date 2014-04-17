@@ -70,8 +70,6 @@ namespace tomatl { namespace dsp {
 			{
 				for (int bin = 0; bin < (mFftSize / 2.); ++bin)
 				{
-					
-
 					T ampl = 0.;
 
 					for (int cn = 0; cn < mChannelCount; ++cn)
@@ -80,8 +78,13 @@ namespace tomatl { namespace dsp {
 						T* mFftSin = ftResult;
 						T* mFftCos = ftResult + mFftSize / 2;
 
-						// TODO: figure out correct scale
-						T nw = 4 * std::sqrt(mFftSin[bin] * mFftSin[bin] + mFftCos[bin] * mFftCos[bin]) / (float)mFftSize;
+						// http://www.dsprelated.com/showmessage/69952/1.php or see below
+						mFftSin[bin] *= 2;
+						mFftCos[bin] *= 2;
+						mFftSin[bin] /= mFftSize;
+						mFftCos[bin] /= mFftSize;
+
+						T nw = std::sqrt(mFftSin[bin] * mFftSin[bin] + mFftCos[bin] * mFftCos[bin]);
 
 						ampl = std::max(nw, ampl);
 					}
@@ -112,5 +115,38 @@ namespace tomatl { namespace dsp {
 	};
 
 }}
+
+/*
+
+What do you expect? I assume you have an N length sinusoidal of
+the form
+
+x[n] = A sin(wn)
+
+and find a spectrum coefficient of magnitude A*N/2 (provided
+the frquency w is an integer fraction of the sampling frequency
+w = m/N, m < N/2).
+
+First the factor 1/2. The spectrum of a real-valued signal is
+conjugate symmetric, meaning one real-valed sinusoidal is
+represented as two complex-valued sinusoidals according
+to Eulers formula,
+
+A*sin(x) = A*(exp(jx)-exp(-jx))/j2.
+
+These two complex-valued sinusoidals have magnitde
+A/2, so if you plot only the range [0,fs/2] you need to
+scale by a factor 2 to recover A.
+
+Second, the factor N. The DFT is a set of vector products
+between the input signal x and N complex elements of
+unit magnitude:
+
+X[k] = sum_n=0^N-1 A*exp(j*2*pi*k*n/N)*exp(-j*2*pi*k*n/N)
+= N*A
+
+To recover A, one needs to divide by N.
+
+*/
 
 #endif
