@@ -91,7 +91,7 @@ namespace tomatl{ namespace dsp{
 			prepareFreqCache();
 		}
 
-		void updateSize(size_t w, size_t h)
+		bool updateSize(size_t w, size_t h)
 		{
 			if (w != mWidth || h != mHeight)
 			{
@@ -99,26 +99,38 @@ namespace tomatl{ namespace dsp{
 				mWidth = w;
 				prepareFreqCache();
 				recalcGrid();
+
+				return true;
 			}
+
+			return false;
 		}
 
-		void updateSampleRate(size_t sampleRate)
+		bool updateSampleRate(size_t sampleRate)
 		{
 			if (sampleRate != mSampleRate)
 			{
 				mSampleRate = sampleRate;
 				prepareFreqCache();
+
+				return true;
 			}
+
+			return false;
 		}
 
-		void updateBounds(Bound2D<double> bounds)
+		bool updateBounds(Bound2D<double> bounds)
 		{
 			if (!mBounds.areEqual(bounds))
 			{
 				mBounds = bounds;
 				recalcGrid();
 				prepareFreqCache();
+
+				return true;
 			}
+
+			return false;
 		}
 
 		void updateBinCount(size_t binCount)
