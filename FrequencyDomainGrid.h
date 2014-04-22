@@ -179,6 +179,11 @@ namespace tomatl{ namespace dsp{
 			return mHeight - mMagnitudeScale.scale(mHeight, mBounds.Y, value, true) - 1;
 		}
 
+		forcedinline int minusInfToY()
+		{
+			return dbToY(-1000.);
+		}
+
 		forcedinline double yToDb(const int& y)
 		{
 			return mMagnitudeScale.unscale(mHeight, mBounds.Y, mHeight - y - 1, true);

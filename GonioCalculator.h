@@ -27,7 +27,7 @@ public:
 		Coord<T>::rotatePolarDegrees(point, -45.);
 
 		// Scale auto-adjusting. We tend to use max space available even if our signal is not normalized to 0dB
-		double m = std::max(0.01, 1. / mEnvelope.process(point.first)); // 0.01 is limit not to expand beneath -40dB
+		double m = 1. / std::max(0.01, mEnvelope.process(point.first)); // 0.01 is limit not to expand beneath -40dB
 		
 		mLastScale = mCustomScaleEnabled ? (1. / mCustomScale) : m;
 

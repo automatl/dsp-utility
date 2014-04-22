@@ -29,6 +29,10 @@
 	#define TOMATL_FROM_DB(x) (std::pow(2., x / 6.))
 #endif
 
+#ifndef TOMATL_FAST_DIVIDE_BY_255
+	#define TOMATL_FAST_DIVIDE_BY_255(x) (((x) + 1 + ((x) >> 8)) >> 8);
+#endif
+
 // TODO: define for all platforms
 #ifndef forcedinline
 	#define forcedinline __forceinline
