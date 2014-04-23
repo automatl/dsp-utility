@@ -141,6 +141,8 @@ namespace tomatl{ namespace dsp{
 			}
 		}
 
+		bool containsPoint(int x, int y) { return x <= getWidth() && y <= getHeight(); }
+
 		bool isFrequencyVisible(const double& freq) { return TOMATL_IS_IN_BOUNDS_INCLUSIVE(freq, mBounds.X.mLow, mBounds.X.mHigh); }
 
 		size_t getWidth() { return mWidth; }
@@ -173,6 +175,11 @@ namespace tomatl{ namespace dsp{
 			return mFreqCache[(int)value];
 		}
 
+		forcedinline double xToFreq(const int& x)
+		{
+			return mFreqScale.unscale(mWidth, mBounds.X, x, true);
+		}
+
 		
 		forcedinline int dbToY(const double& value)
 		{
@@ -202,6 +209,41 @@ namespace tomatl{ namespace dsp{
 		~FrequencyDomainGrid()
 		{
 			TOMATL_BRACE_DELETE(mFreqCache);
+		}
+		
+		std::wstring getPointNotation(int x, int y)
+		{
+			if (containsPoint(x, y))
+			{
+				auto ampl = dbToExtendedString(yToDb(y));
+				auto freq = freqToExtendedString(xToFreq(x));
+
+				return L"(" + freq + L", " + ampl + L")";
+			}
+			else
+			{
+				return L"";
+			}
+		}
+
+		static std::wstring freqToExtendedString(const double& freq)
+		{
+			wchar_t buffer[50];
+			memset(&buffer, 0x0, 50);
+
+			swprintf(buffer, 50, L"%.0fHz", freq);
+
+			return std::wstring(buffer);
+		}
+
+		static std::wstring dbToExtendedString(const double & ampl)
+		{
+			wchar_t buffer[50];
+			memset(&buffer, 0x0, 50);
+
+			swprintf(buffer, 50, L"%.2fdB", ampl);
+
+			return std::wstring(buffer);
 		}
 
 		static std::wstring freqToString(const double& freq)
