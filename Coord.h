@@ -39,10 +39,7 @@ public:
 
 	static void rotatePolarDegrees(std::pair<T, T>& subject, T angle)
 	{
-		// TODO: place constants somewhere
-		T pi = std::atan(1.0) * 4;
-
-		rotatePolarRadians(subject, angle * (2. * pi * (1. / 360.)));
+		rotatePolarRadians(subject, angle * (2. * TOMATL_PI * (1. / 360.)));
 	}
 
 	static void rotatePolarRadians(std::pair<T, T>& subject, T angle)

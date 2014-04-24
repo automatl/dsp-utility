@@ -23,11 +23,8 @@ public:
 
 		for (int i = 0; i < mLength; ++i)
 		{
-#ifndef PI
-#define PI 3.14159265359
-#endif
 			// Blackman-Harris window
-			mPrecomputedWindowFunction[i] = (a0 - a1 * std::cos(2 * PI * i / (mLength - 1)) + a2 * cos(4 * PI * i / (mLength - 1)) - a3 * cos(6 * PI * i / (mLength - 1)));
+			mPrecomputedWindowFunction[i] = (a0 - a1 * std::cos(2 * TOMATL_PI * i / (mLength - 1)) + a2 * cos(4 * TOMATL_PI * i / (mLength - 1)) - a3 * cos(6 * TOMATL_PI * i / (mLength - 1)));
 		}
 	}
 
@@ -114,7 +111,7 @@ private:
 			le2 = le >> 1;
 			ur = 1.0;
 			ui = 0.0;
-			arg = PI / (le2 >> 1);
+			arg = TOMATL_PI / (le2 >> 1);
 			wr = cos(arg);
 			wi = sign*sin(arg);
 
@@ -167,7 +164,7 @@ private:
 			mFftCos[bin] = (mFftSin[bin] = 0.);
 			for (int k = 0; k < mLength; ++k)
 			{
-				arg = 2.0 * (float)bin * PI * (float)k / mLength;
+				arg = 2.0 * (float)bin * TOMATL_PI * (float)k / mLength;
 				mFftSin[bin] += mInput[k] * sign * sin(arg);
 				mFftCos[bin] += mInput[k] * cos(arg);
 			}

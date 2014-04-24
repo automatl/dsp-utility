@@ -33,6 +33,10 @@
 	#define TOMATL_FAST_DIVIDE_BY_255(x) (((x) + 1 + ((x) >> 8)) >> 8);
 #endif
 
+#ifndef TOMATL_PI
+	#define TOMATL_PI 3.14159265359
+#endif
+
 // TODO: define for all platforms
 #ifndef forcedinline
 	#define forcedinline __forceinline
