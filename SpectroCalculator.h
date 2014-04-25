@@ -11,6 +11,7 @@ namespace tomatl { namespace dsp {
 			mData = NULL;
 			mIndex = 0;
 			mSampleRate = 0;
+			mFramesRendered = 0;
 		}
 
 		SpectrumBlock(size_t size, std::pair<double, double>* data, size_t index, size_t sampleRate)
@@ -19,11 +20,13 @@ namespace tomatl { namespace dsp {
 			mData = data;
 			mIndex = index;
 			mSampleRate = sampleRate;
+			mFramesRendered = 0;
 		}
 
 		size_t mLength;
 		size_t mIndex;
 		size_t mSampleRate;
+		size_t mFramesRendered;
 		std::pair<double, double>* mData;
 	};
 
