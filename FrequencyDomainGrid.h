@@ -1,11 +1,122 @@
 #ifndef TOMATL_FREQUENCY_DOMAIN_GRID
 #define TOMATL_FREQUENCY_DOMAIN_GRID
 
+#include <string>
+
 namespace tomatl{ namespace dsp{
 
 	// TODO: left and top offsets for coordinates.
 	class FrequencyDomainGrid
 	{
+	public:
+		enum NoteName
+		{
+			noteA = 0,
+			noteASharp,
+			noteB,
+			noteC,
+			noteCSharp,
+			noteD,
+			noteDSharp,
+			noteE,
+			noteF,
+			noteFSharp,
+			noteG,
+			noteGSharp
+		};
+
+		struct NoteNotation
+		{
+			NoteNotation() : 
+				mOctaveNumber(4), mNoteName(noteA), mCentsCount(0)
+			{
+			}
+
+			NoteNotation(short octaveNumber, NoteName noteName, unsigned short centsCount) :
+				mOctaveNumber(octaveNumber), mNoteName(noteName), mCentsCount(centsCount)
+			{
+			}
+
+			// TODO: this and next() methods are rather hacky. Maybe make NoteName start from C
+			// and rewrite
+			static NoteNotation fromFrequency(double freq)
+			{
+				NoteNotation result;
+
+				// 440.0 - base tuning frequency. Which is A4.
+				double linearFreq = std::log2(freq / 440.0) + 5;
+
+				// Octave number is equal to integer part of linear frequency obviously
+				short octave = floor(linearFreq);
+
+				// Cents from the beginning of octave. Each octave has 1200 cents, because 'cent' is one percent between two adjacent notes (centinote?)
+				double cents = 1200 * (linearFreq - octave);
+
+				int temp = floor(cents / 100.);
+
+				unsigned short noteNumber = temp % 12;
+
+				if (noteNumber < noteC)
+				{
+					--octave;
+				}
+
+				result.mOctaveNumber = octave;
+				result.mNoteName = (NoteName)noteNumber;
+				result.mCentsCount = cents - noteNumber * 100;
+
+				if (result.mCentsCount > 50)
+				{
+					result = result.next();
+					result.mCentsCount = -(100 - result.mCentsCount);
+				}
+
+				return result;
+			}
+
+			NoteNotation next()
+			{
+				NoteNotation result;
+
+				if (mNoteName == noteB)
+				{
+					result = NoteNotation(mOctaveNumber + 1, noteC, mCentsCount);
+				}
+				else if (mNoteName == noteGSharp)
+				{
+					result = NoteNotation(mOctaveNumber, noteA, mCentsCount);
+				}
+				else
+				{
+					result = NoteNotation(mOctaveNumber, (NoteName)(mNoteName + 1), mCentsCount);
+				}
+
+				return result;
+			}
+
+			std::wstring toWstring()
+			{
+				std::wstring result;
+
+				const wchar_t* noteNames[12] = { L"A ", L"A#", L"B ", L"C ", L"C#", L"D ", L"D#", L"E ", L"F ", L"F#", L"G ", L"G#" };
+
+				result += noteNames[mNoteName];
+
+				result += std::to_wstring(mOctaveNumber);
+
+				result += L" ";
+
+				result += std::to_wstring(mCentsCount);
+
+				result += L" cents";
+
+				return result;
+			}
+
+			short mOctaveNumber;
+			NoteName mNoteName;
+			short mCentsCount;
+		};
 	private:
 		tomatl::dsp::OctaveScale mFreqScale;
 		tomatl::dsp::LinearScale mMagnitudeScale; // As we use dB values the scale is linear
@@ -41,8 +152,8 @@ namespace tomatl{ namespace dsp{
 			mAmplGrid.clear();
 			mFreqGrid.clear();
 
-			const int size = 11;
-			double freqs[size] = { 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 30000 };
+			const int size = 10;
+			double freqs[size] = { 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000 };
 
 			for (int i = 0; i < size; ++i)
 			{
@@ -218,7 +329,9 @@ namespace tomatl{ namespace dsp{
 				auto ampl = dbToExtendedString(yToDb(y));
 				auto freq = freqToExtendedString(xToFreq(x));
 
-				return L"(" + freq + L", " + ampl + L")";
+				auto note = NoteNotation::fromFrequency(xToFreq(x));
+
+				return L"" + freq + L", " + ampl + L" | " + note.toWstring() + L"";
 			}
 			else
 			{

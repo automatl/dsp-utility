@@ -123,10 +123,9 @@ public:
 	{
 		double octaveCount = std::log2(bound.mHigh) - std::log2(bound.mLow);
 		double pixelPerOctave = length / octaveCount;
-		double offset = std::abs(std::log2(bound.mLow / pixelPerOctave) * pixelPerOctave);
+		double offset = std::round(std::log2(bound.mLow / pixelPerOctave) * pixelPerOctave);
 
-		// TODO: fix offset being incorrectly calculated and applied
-		double value = pixelPerOctave * std::pow(2., ((val - offset) / pixelPerOctave));
+		double value = pixelPerOctave * std::pow(2., ((val + offset) / pixelPerOctave));
 
 		if (limit)
 		{
