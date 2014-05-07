@@ -202,6 +202,11 @@ namespace tomatl{ namespace dsp{
 			prepareFreqCache();
 		}
 
+		const tomatl::dsp::Bound2D<double>& getCurrentBounds()
+		{
+			return mBounds;
+		}
+
 		bool updateSize(size_t w, size_t h)
 		{
 			if (w != mWidth || h != mHeight)
@@ -300,6 +305,11 @@ namespace tomatl{ namespace dsp{
 		forcedinline int minusInfToY()
 		{
 			return dbToY(-1000.);
+		}
+
+		forcedinline int lowestVisibleFreqToX()
+		{
+			return freqToX(mBounds.X.mLow);
 		}
 
 		forcedinline double yToDb(const int& y)
