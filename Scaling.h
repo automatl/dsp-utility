@@ -5,6 +5,11 @@ namespace tomatl { namespace dsp {
 
 template <typename T> struct SingleBound
 {
+	SingleBound()
+	{
+		
+	}
+
 	SingleBound(T low, T high)
 	{
 		mLow = low;

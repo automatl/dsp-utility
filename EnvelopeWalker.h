@@ -50,23 +50,23 @@ public:
 		return exp(log(0.01) / (coeffInMs * sampleRate * 0.001));
 	}
 
-	static void staticProcess(double* in, double* current, double* attackCoef, double* releaseCoef, double* sampleRate)
+	static void staticProcess(const double& in, double* current, const double& attackCoef, const double& releaseCoef)
 	{
-		double tmp = fabs(*in);
+		double tmp = fabs(in);
 
 		if (tmp > *current)
 		{
-			*current = *attackCoef * (*current - tmp) + tmp;
+			*current = attackCoef * (*current - tmp) + tmp;
 		}
 		else
 		{
-			*current = *releaseCoef * (*current - tmp) + tmp;
+			*current = releaseCoef * (*current - tmp) + tmp;
 		}
 	}
 
 	double process(double in)
 	{
-		staticProcess(&in, &m_currentValue, &m_attackCoef, &m_releaseCoef, &m_sampleRate);
+		staticProcess(in, &m_currentValue, m_attackCoef, m_releaseCoef);
 
 		return m_currentValue;
 	}

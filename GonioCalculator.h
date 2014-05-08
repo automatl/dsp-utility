@@ -18,6 +18,11 @@ public:
 		
 	}
 
+	void setReleaseSpeed(double value)
+	{
+		mEnvelope.setReleaseSpeed(value);
+	}
+
 	std::pair<T, T>* handlePoint(const std::pair<T, T>& subject, size_t sampleRate)
 	{
 		std::pair<T, T> point(subject);

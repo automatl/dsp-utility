@@ -1,6 +1,8 @@
 #ifndef TOMATL_SPECTRO_CALCULATOR
 #define TOMATL_SPECTRO_CALCULATOR
 
+#include <limits>
+
 namespace tomatl { namespace dsp {
 
 	struct SpectrumBlock
@@ -33,13 +35,15 @@ namespace tomatl { namespace dsp {
 	template <typename T> class SpectroCalculator
 	{
 	public:
-		SpectroCalculator(std::pair<double, double> attackRelease, size_t index, size_t fftSize = 1024, size_t channelCount = 2)
+		SpectroCalculator(double sampleRate, std::pair<double, double> attackRelease, size_t index, size_t fftSize = 1024, size_t channelCount = 2)
 		{
 			mData = new std::pair<double, double>[fftSize];
 			mChannelCount = channelCount;
 			mFftSize = fftSize;
-			mAttackRelease = attackRelease;
 			mIndex = index;
+			mSampleRate = sampleRate;
+			setAttackSpeed(attackRelease.first);
+			setReleaseSpeed(attackRelease.second);
 
 			for (int i = 0; i < channelCount; ++i)
 			{
@@ -59,7 +63,31 @@ namespace tomatl { namespace dsp {
 			mDfts.clear();
 		}
 
-		SpectrumBlock process(T* channels, double sampleRate)
+		bool checkSampleRate(double sampleRate)
+		{
+			if (sampleRate != mSampleRate)
+			{
+				mSampleRate = sampleRate;
+				setAttackSpeed(mAttackRelease.first);
+				setReleaseSpeed(mAttackRelease.second);
+
+				return true;
+			}
+
+			return false;
+		}
+
+		void setReleaseSpeed(double speed)
+		{
+			mAttackRelease.second = tomatl::dsp::EnvelopeWalker::calculateCoeff(speed, mSampleRate / mFftSize);
+		}
+
+		void setAttackSpeed(double speed)
+		{
+			mAttackRelease.first = tomatl::dsp::EnvelopeWalker::calculateCoeff(speed, mSampleRate / mFftSize);
+		}
+
+		SpectrumBlock process(T* channels)
 		{
 			T* response = NULL;
 
@@ -94,13 +122,20 @@ namespace tomatl { namespace dsp {
 
 					double prev = mData[bin].second;
 
-					EnvelopeWalker::staticProcess(&ampl, &prev, &mAttackRelease.first, &mAttackRelease.second, &sampleRate);
+					if (mAttackRelease.second == std::numeric_limits<double>::infinity())
+					{
+						prev = std::max(prev, ampl);
+					}
+					else
+					{
+						EnvelopeWalker::staticProcess(ampl, &prev, mAttackRelease.first, mAttackRelease.second);
+					}
 
 					mData[bin].first = bin;
 					mData[bin].second = prev;
 				}
 
-				return SpectrumBlock(mFftSize / 2., mData, mIndex, sampleRate);
+				return SpectrumBlock(mFftSize / 2., mData, mIndex, mSampleRate);
 			}
 			else
 			{
@@ -115,6 +150,7 @@ namespace tomatl { namespace dsp {
 		size_t mChannelCount;
 		size_t mFftSize;
 		size_t mIndex;
+		double mSampleRate;
 	};
 
 }}
