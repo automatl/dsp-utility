@@ -56,6 +56,7 @@ namespace tomatl{ namespace dsp{
 
 				unsigned short noteNumber = temp % 12;
 
+				// Octave is starting from C, but our measurements were using A as octave start, so adjustment is needed
 				if (noteNumber < noteC)
 				{
 					--octave;
@@ -65,6 +66,7 @@ namespace tomatl{ namespace dsp{
 				result.mNoteName = (NoteName)noteNumber;
 				result.mCentsCount = cents - noteNumber * 100;
 
+				// We're trying to 'snap' note to closest one using negative cents.
 				if (result.mCentsCount > 50)
 				{
 					result = result.next();
@@ -117,6 +119,7 @@ namespace tomatl{ namespace dsp{
 			NoteName mNoteName;
 			short mCentsCount;
 		};
+
 	private:
 		tomatl::dsp::OctaveScale mFreqScale;
 		tomatl::dsp::LinearScale mMagnitudeScale; // As we use dB values the scale is linear
@@ -171,7 +174,6 @@ namespace tomatl{ namespace dsp{
 			}
 		}
 	public:
-
 		struct GridLine
 		{
 			GridLine(int location, double value, std::wstring caption)
@@ -187,7 +189,7 @@ namespace tomatl{ namespace dsp{
 			int mLocation;
 			double mValue;
 			std::wstring mCaption;
-		};
+		};		
 
 		FrequencyDomainGrid(Bound2D<double> fullBounds, size_t sampleRate = 0, size_t binCount = 0, size_t width = 0, size_t height = 0)
 		{
@@ -400,6 +402,23 @@ namespace tomatl{ namespace dsp{
 		std::vector<GridLine> mAmplGrid;
 	};
 
+	/*class EqualizerGrid : public FrequencyDomainGrid
+	{
+	public:
+
+		EqualizerGrid(Bound2D<double> fullBounds, size_t sampleRate = 0, size_t binCount = 0, size_t width = 0, size_t height = 0)
+			: FrequencyDomainGrid(fullBounds, sampleRate, binCount, width, height)
+		{
+		}
+		
+		void addPoint(FrequencyDomainFilter* filter) { mPoints.push_back(filter); }
+
+		size_t getPointCount() { return mPoints.size(); }
+
+		FrequencyDomainFilter* getPoint(int index) { return mPoints[index]; }
+	private:
+		std::vector<tomatl::dsp::FrequencyDomainFilter*> mPoints;
+	};*/
 }}
 
 #endif

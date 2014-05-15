@@ -37,18 +37,35 @@
 	#define TOMATL_PI 3.14159265359
 #endif
 
+#define TOMATL_DELETED_FUNCTION = delete
+
+#define TOMATL_DECLARE_NON_COPYABLE(className) \
+	className (const className&) TOMATL_DELETED_FUNCTION;\
+	className& operator= (const className&) TOMATL_DELETED_FUNCTION;
+
+#define TOMATL_DECLARE_NON_MOVABLE(className) \
+	className(className&&) TOMATL_DELETED_FUNCTION;\
+	className& operator=(className&&) TOMATL_DELETED_FUNCTION;\
+
+#define TOMATL_DECLARE_NON_MOVABLE_COPYABLE(className) \
+	TOMATL_DECLARE_NON_COPYABLE(className) \
+	TOMATL_DECLARE_NON_MOVABLE(className)
+
 // TODO: define for all platforms
 #ifndef forcedinline
 	#define forcedinline __forceinline
 #endif
 
 #include "spsc_queue.h"
+#include "Buffer.h"
 #include "Coord.h"
 #include "Scaling.h"
+#include "WindowFunction.h"
 #include "EnvelopeWalker.h"
 #include "GonioCalculator.h"
-#include "SimpleWindowedDft.h"
+#include "FftCalculator.h"
 #include "SpectroCalculator.h"
+//#include "BiQuad.h"
 #include "FrequencyDomainGrid.h"
 
 #endif

@@ -2,6 +2,7 @@
 #define TOMATL_SPECTRO_CALCULATOR
 
 #include <limits>
+#include <memory>
 
 namespace tomatl { namespace dsp {
 
@@ -35,32 +36,35 @@ namespace tomatl { namespace dsp {
 	template <typename T> class SpectroCalculator
 	{
 	public:
-		SpectroCalculator(double sampleRate, std::pair<double, double> attackRelease, size_t index, size_t fftSize = 1024, size_t channelCount = 2)
+		SpectroCalculator(double sampleRate, std::pair<double, double> attackRelease, size_t index, size_t fftSize = 1024, size_t channelCount = 2) : 
+			mWindowFunction(WindowFunctionFactory::create<T>(WindowFunctionFactory::windowHann, fftSize, IWindowFunction::modePeriodic))
 		{
 			mData = new std::pair<double, double>[fftSize];
+			memset(mData, 0x0, sizeof(std::pair<double, double>) * fftSize);
 			mChannelCount = channelCount;
 			mFftSize = fftSize;
 			mIndex = index;
 			mSampleRate = sampleRate;
-			setAttackSpeed(attackRelease.first);
-			setReleaseSpeed(attackRelease.second);
 
 			for (int i = 0; i < channelCount; ++i)
 			{
-				mDfts.push_back(new SimpleWindowedDft<double>(fftSize));
+				mBuffers.push_back(new OverlappingBufferSequence<T>(mFftSize * 2, mFftSize));
 			}
+
+			setAttackSpeed(attackRelease.first);
+			setReleaseSpeed(attackRelease.second);
 		}
 
 		~SpectroCalculator()
 		{
-			delete[] mData;
+			TOMATL_BRACE_DELETE(mData);
 
 			for (int i = 0; i < mChannelCount; ++i)
 			{
-				delete mDfts[i];
+				TOMATL_DELETE(mBuffers[i]);
 			}
 
-			mDfts.clear();
+			mBuffers.clear();
 		}
 
 		bool checkSampleRate(double sampleRate)
@@ -79,62 +83,31 @@ namespace tomatl { namespace dsp {
 
 		void setReleaseSpeed(double speed)
 		{
-			mAttackRelease.second = tomatl::dsp::EnvelopeWalker::calculateCoeff(speed, mSampleRate / mFftSize);
+			mAttackRelease.second = tomatl::dsp::EnvelopeWalker::calculateCoeff(speed, mSampleRate / mFftSize / mBuffers[0]->getOverlappingFactor() * mChannelCount);
 		}
 
 		void setAttackSpeed(double speed)
 		{
-			mAttackRelease.first = tomatl::dsp::EnvelopeWalker::calculateCoeff(speed, mSampleRate / mFftSize);
+			mAttackRelease.first = tomatl::dsp::EnvelopeWalker::calculateCoeff(speed, mSampleRate / mFftSize / mBuffers[0]->getOverlappingFactor() * mChannelCount);
 		}
 
 		SpectrumBlock process(T* channels)
 		{
-			T* response = NULL;
+			T* chData = NULL;
+
+			bool processed = false;
 
 			for (int i = 0; i < mChannelCount; ++i)
 			{
-				response = mDfts[i]->push(channels + i);
-				
+				// As our signal is built entirely from real numbers, imaginary part will always be zero
+				mBuffers[i]->putOne(channels[i]);
+				chData = mBuffers[i]->putOne(0.);
+
+				processed = processed || calculateSpectrumFromChannelBufferIfReady(chData);
 			}
 
-			if (response != NULL)
+			if (processed)
 			{
-				for (int bin = 0; bin < (mFftSize / 2.); ++bin)
-				{
-					T ampl = 0.;
-
-					for (int cn = 0; cn < mChannelCount; ++cn)
-					{
-						T* ftResult = mDfts[cn]->getOutput();
-						T* mFftSin = ftResult;
-						T* mFftCos = ftResult + mFftSize / 2;
-
-						// http://www.dsprelated.com/showmessage/69952/1.php or see below
-						mFftSin[bin] *= 2;
-						mFftCos[bin] *= 2;
-						mFftSin[bin] /= mFftSize;
-						mFftCos[bin] /= mFftSize;
-
-						T nw = std::sqrt(mFftSin[bin] * mFftSin[bin] + mFftCos[bin] * mFftCos[bin]);
-
-						ampl = std::max(nw, ampl);
-					}
-
-					double prev = mData[bin].second;
-
-					if (mAttackRelease.second == std::numeric_limits<double>::infinity())
-					{
-						prev = std::max(prev, ampl);
-					}
-					else
-					{
-						EnvelopeWalker::staticProcess(ampl, &prev, mAttackRelease.first, mAttackRelease.second);
-					}
-
-					mData[bin].first = bin;
-					mData[bin].second = prev;
-				}
-
 				return SpectrumBlock(mFftSize / 2., mData, mIndex, mSampleRate);
 			}
 			else
@@ -144,9 +117,68 @@ namespace tomatl { namespace dsp {
 		}
 
 	private:
-		std::vector<SimpleWindowedDft<T>*> mDfts;
+
+		bool calculateSpectrumFromChannelBufferIfReady(T* chData)
+		{
+			if (chData != NULL)
+			{
+				// Apply window function to buffer
+				for (int s = 0; s < mFftSize; ++s)
+				{
+					mWindowFunction->applyFunction(chData + s * 2, s, 1, true);
+				}
+
+				// In-place calculate FFT
+				FftCalculator<T>::calculateFast(chData, mFftSize);
+
+				// Calculate frequency-magnitude pairs (omitting phase information, as we won't need it) for all frequency bins
+				for (int bin = 0; bin < (mFftSize / 2.); ++bin)
+				{
+					T ampl = 0.;
+
+					T* ftResult = chData;
+
+					// FFT bin in rectangle form
+					T mFftSin = ftResult[bin * 2];
+					T mFftCos = ftResult[bin * 2 + 1];
+
+					// http://www.dsprelated.com/showmessage/69952/1.php or see below
+					mFftSin *= 2;
+					mFftCos *= 2;
+					mFftSin /= mFftSize;
+					mFftCos /= mFftSize;
+
+					// Partial conversion to polar coordinates: we calculate radius vector length, but don't calculate angle (aka phase) as we won't need it
+					T nw = std::sqrt(mFftSin * mFftSin + mFftCos * mFftCos);
+
+					ampl = std::max(nw, ampl);
+
+					double prev = mData[bin].second;
+
+					// Special case - hold spectrum (aka infinite release time)
+					if (mAttackRelease.second == std::numeric_limits<double>::infinity())
+					{
+						prev = std::max(prev, ampl);
+					}
+					else // Time smoothing/averaging is being done here
+					{
+						EnvelopeWalker::staticProcess(ampl, &prev, mAttackRelease.first, mAttackRelease.second);
+					}
+
+					mData[bin].first = bin;
+					mData[bin].second = prev;
+				}
+
+				return true;
+			}
+
+			return false;
+		}
+
+		std::vector<OverlappingBufferSequence<T>*> mBuffers;
 		std::pair<double, double>* mData;
 		std::pair<double, double> mAttackRelease;
+		std::unique_ptr<WindowFunction<T>> mWindowFunction;
 		size_t mChannelCount;
 		size_t mFftSize;
 		size_t mIndex;
