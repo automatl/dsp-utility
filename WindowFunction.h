@@ -1,40 +1,36 @@
 #ifndef TOMATL_WINDOW_FUNCTION
 #define TOMATL_WINDOW_FUNCTION
 
-// TODO: perform some refactoring to avoid implementation inheritance as it would possibly simplify things a little
+#include <functional>
 
-namespace tomatl { namespace dsp {
+namespace tomatl { namespace dsp{
 
-class IWindowFunction
-{
-protected:
-	virtual void precalculateWindow(void) = 0;
-public:
-	// After windowing input signal, it obviously becomes "more quiet", so we're need to compensate that sometimes (http://alpha.science.unitn.it/~bassi/Signal/NInotes/an041.pdf)
-	virtual double getWindowScalingFactor() = 0;
-
-	enum SymmetryMode
-	{
-		modeSymetric = 0,
-		modePeriodic
-	};
-};
-
-template <typename T> class WindowFunction : public IWindowFunction
+template <typename T> class WindowFunction
 {
 private:
 	size_t mLength = 0;
-protected:
+	std::function<T(const int&, const size_t&)> mFunction;
 	T* mPrecalculated = NULL;
+	T mScalingFactor = 0.;
 
-	WindowFunction(size_t length)
+	TOMATL_DECLARE_NON_MOVABLE_COPYABLE(WindowFunction);
+public:
+	WindowFunction(size_t length, std::function<T(const int&, const size_t&)> func, bool periodicMode = false) : mFunction(func)
 	{
 		mPrecalculated = new T[length];
 		mLength = length;
 		memset(mPrecalculated, 0x0, sizeof(T)* length);
 
+		if (periodicMode) ++length;
+
+		for (int i = 0; i < mLength; ++i)
+		{
+			mPrecalculated[i] = mFunction(i, length);
+			mScalingFactor += mPrecalculated[i];
+		}
+
+		mScalingFactor /= length;
 	}
-public:
 
 	forcedinline void applyFunction(T* signal, size_t start, size_t length = 1, bool scale = false)
 	{
@@ -48,7 +44,7 @@ public:
 			{
 				signal[sample] *= mPrecalculated[i];
 
-				if (scale) signal[sample] /= getWindowScalingFactor();
+				if (scale) signal[sample] /= mScalingFactor;
 			}
 			else
 			{
@@ -71,117 +67,16 @@ public:
 
 	forcedinline const size_t& getLength() { return mLength; }
 
+	// After windowing input signal, it obviously becomes "more quiet", so we're need to compensate that sometimes (http://alpha.science.unitn.it/~bassi/Signal/NInotes/an041.pdf)
+	// If we'll take signal consisting of all samples being equal to on one, its power (sum of all samples divided by sample count) will be equal to one
+	// Applying window function to this signal and measuring its power will tell us how much power is being lost. This is how this thing can be calculated - 
+	// Sum all precalculated window samples (on large size like 40960 for accuracy) and divide by sample count.
+	forcedinline const T& getNormalizationFactor() { return mScalingFactor; }
+
 	virtual ~WindowFunction()
 	{
 		TOMATL_BRACE_DELETE(mPrecalculated);
 	}
-};
-
-template <typename T> class BlackmanHarrisWindow : public WindowFunction<T>
-{
-private:
-	BlackmanHarrisWindow(const BlackmanHarrisWindow& other) {}
-	BlackmanHarrisWindow(BlackmanHarrisWindow &&) {}
-	BlackmanHarrisWindow() {}
-protected:
-	virtual void precalculateWindow()
-	{
-		T a0 = 0.35875;
-		T a1 = 0.48829;
-		T a2 = 0.14128;
-		T a3 = 0.01168;
-
-		for (int i = 0; i < getLength(); ++i)
-		{
-			// Blackman-Harris window
-			mPrecalculated[i] =
-				a0 -
-				a1 * std::cos(2 * TOMATL_PI * i / (getLength() - 1)) +
-				a2 * std::cos(4 * TOMATL_PI * i / (getLength() - 1)) -
-				a3 * std::cos(6 * TOMATL_PI * i / (getLength() - 1));
-		}
-
-		int zhopa = 1;
-	}
-public:
-	virtual double getWindowScalingFactor() { return 0.42; }
-
-	BlackmanHarrisWindow(size_t length) : WindowFunction(length) { precalculateWindow(); }
-};
-
-template <typename T> class BarlettWindow : public WindowFunction<T>
-{
-private:
-	BarlettWindow(const BarlettWindow& other) {}
-	BarlettWindow(BarlettWindow &&) {}
-	BarlettWindow() {}
-
-	IWindowFunction::SymmetryMode mMode;
-protected:
-	virtual void precalculateWindow()
-	{
-		size_t length = getLength();
-
-		if (mMode == IWindowFunction::modePeriodic) ++length;
-
-		double a = ((double)length - 1.) / 2.;
-		double halfL = a;
-
-		for (int i = 0; i < getLength(); ++i)
-		{
-			mPrecalculated[i] = 1. - std::abs((i - a) / halfL);
-		}
-	}
-public:
-	virtual double getWindowScalingFactor() { return 1.; } // TODO: correct scaling
-
-	BarlettWindow(size_t length, IWindowFunction::SymmetryMode mode = IWindowFunction::modeSymetric) : mMode(mode), WindowFunction(length) { precalculateWindow(); }
-};
-
-template <typename T> class HannWindow : public WindowFunction<T>
-{
-private:
-	HannWindow(const HannWindow& other) {}
-	HannWindow(HannWindow &&) {}
-	HannWindow() {}
-
-	IWindowFunction::SymmetryMode mMode;
-protected:
-	virtual void precalculateWindow()
-	{
-		size_t length = getLength();
-
-		if (mMode == IWindowFunction::modePeriodic) ++length;
-
-		for (int i = 0; i < getLength(); ++i)
-		{
-			mPrecalculated[i] = 0.5 * (1. - std::cos(2 * TOMATL_PI * i / (length - 1)));
-		}
-	}
-public:
-	virtual double getWindowScalingFactor() { return 0.5; } // TODO: correct scaling
-
-	HannWindow(size_t length, IWindowFunction::SymmetryMode mode = IWindowFunction::modeSymetric) : mMode(mode), WindowFunction(length) { precalculateWindow(); }
-};
-
-template <typename T> class SquareWindow : public WindowFunction<T>
-{
-private:
-	SquareWindow(const SquareWindow& other) {}
-	SquareWindow(SquareWindow &&) {}
-	SquareWindow() {}
-protected:
-	virtual void precalculateWindow(void)
-	{
-		for (int i = 0; i < getLength(); ++i)
-		{
-			mPrecalculated[i] = 1.;
-		}
-	}
-public:
-	virtual double getWindowScalingFactor() { return 1.; }
-
-	SquareWindow(size_t length) : WindowFunction(length) { precalculateWindow(); }
 };
 
 class WindowFunctionFactory
@@ -194,30 +89,57 @@ public:
 		windowRectangle = 0,
 		windowBlackmanHarris,
 		windowHann,
-		windowBarlett
+		windowBarlett,
+		windowMystic
 	};
 
-	template <typename T> static WindowFunction<T>* create(FunctionType type, size_t length, IWindowFunction::SymmetryMode mode = IWindowFunction::modeSymetric)
+	template <typename T> static std::function<T(const int&, const size_t&)> getWindowCalculator(FunctionType type)
 	{
 		if (type == windowRectangle)
 		{
-			return new SquareWindow<T>(length);
-		}
-		else if (type == windowBlackmanHarris)
-		{
-			return new BlackmanHarrisWindow<T>(length);
+			return [](const int& i, const size_t& length) { return 1.; };
 		}
 		else if (type == windowHann)
 		{
-			return new HannWindow<T>(length, mode);
+			return [](const int& i, const size_t& length) { return 0.5 * (1. - std::cos(2 * TOMATL_PI * i / (length - 1))); };
 		}
 		else if (type == windowBarlett)
 		{
-			return new BarlettWindow<T>(length, mode);
+			return [](const int& i, const size_t& length)
+			{
+				double a = ((double)length - 1.) / 2.;
+
+				return 1. - std::abs((i - a) / a); 
+			};
+		}
+		else if (type == windowBlackmanHarris) // Four-term Blackman-Harris window
+		{
+			return[](const int& i, const size_t& length)
+			{
+				T a0 = 0.35875;
+				T a1 = 0.48829;
+				T a2 = 0.14128;
+				T a3 = 0.01168;
+
+				return 
+					a0 -
+					a1 * std::cos(2 * TOMATL_PI * i / (length - 1)) +
+					a2 * std::cos(4 * TOMATL_PI * i / (length - 1)) -
+					a3 * std::cos(6 * TOMATL_PI * i / (length - 1));
+			};
+		}
+		else if (type == windowMystic)
+		{
+			return [](const int& i, const size_t& length)
+			{
+				double a = std::sin(TOMATL_PI * i + TOMATL_PI / 2 * length);
+
+				return std::sin(TOMATL_PI / 2 * a * a);
+			};
 		}
 		else
 		{
-			return NULL;
+			throw 20; // TODO: exception
 		}
 	}
 };

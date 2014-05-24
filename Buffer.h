@@ -139,10 +139,11 @@ public:
 		mBuffers.clear();
 	}
 
-	T* putOne(const T& subject)
+	std::tuple<T*, size_t> putOne(const T& subject)
 	{
 		SimpleBuffer<T>* result = NULL;
-
+		size_t index = 0;
+		
 		for (int i = 0; i < mBuffers.size(); ++i)
 		{
 			mBuffers[i]->putOne(subject);
@@ -150,16 +151,19 @@ public:
 			if (mBuffers[i]->isFull())
 			{
 				result = mBuffers[i];
+				index = i;
 				mBuffers[i]->clear();
 			}
 		}
 
-		return result != NULL ? result->getContents() : NULL;
+		return std::tuple<T*, size_t>(result == NULL ? NULL : result->getContents(), index);
 	}
 
 	const size_t& getSegmentLength() { return mBuffers[0]->getLength(); }
 	const size_t& getHopSize() { return mHopSize; }
 	const double& getOverlappingFactor() { return mOverlappingFactor; }
+	const size_t& getSegmentCount() { return mBuffers.size(); }
+	size_t getSegmentOffset(size_t i) { return i * mHopSize; }
 };
 
 

@@ -22,7 +22,7 @@
 #endif
 
 #ifndef TOMATL_TO_DB
-	#define TOMATL_TO_DB(x) (20. * std::log10(x))
+	#define TOMATL_TO_DB(x) (20. * std::log10(std::abs(x)))
 #endif
 
 #ifndef TOMATL_FROM_DB

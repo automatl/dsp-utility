@@ -37,7 +37,7 @@ namespace tomatl { namespace dsp {
 	{
 	public:
 		SpectroCalculator(double sampleRate, std::pair<double, double> attackRelease, size_t index, size_t fftSize = 1024, size_t channelCount = 2) : 
-			mWindowFunction(WindowFunctionFactory::create<T>(WindowFunctionFactory::windowHann, fftSize, IWindowFunction::modePeriodic))
+			mWindowFunction(new WindowFunction<double>(fftSize, WindowFunctionFactory::getWindowCalculator<double>(WindowFunctionFactory::windowHann), true))
 		{
 			mData = new std::pair<double, double>[fftSize];
 			memset(mData, 0x0, sizeof(std::pair<double, double>) * fftSize);
@@ -93,17 +93,15 @@ namespace tomatl { namespace dsp {
 
 		SpectrumBlock process(T* channels)
 		{
-			T* chData = NULL;
-
 			bool processed = false;
 
 			for (int i = 0; i < mChannelCount; ++i)
 			{
 				// As our signal is built entirely from real numbers, imaginary part will always be zero
 				mBuffers[i]->putOne(channels[i]);
-				chData = mBuffers[i]->putOne(0.);
+				auto chData = mBuffers[i]->putOne(0.);
 
-				processed = processed || calculateSpectrumFromChannelBufferIfReady(chData);
+				processed = processed || calculateSpectrumFromChannelBufferIfReady(std::get<0>(chData));
 			}
 
 			if (processed)

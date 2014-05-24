@@ -9,6 +9,35 @@ private:
 	FftCalculator(){}
 	TOMATL_DECLARE_NON_MOVABLE_COPYABLE(FftCalculator);
 public:
+
+	static void scaleAfterFft(T* fftBuffer, long fftFrameSize)
+	{
+		size_t size = fftFrameSize * 2;
+		T factor = 1. / (T)fftFrameSize;
+
+		for (int i = 0; i < size; ++i)
+		{
+			fftBuffer[i] *= factor;
+		}
+	}
+
+	// For testing purposes only. Should not be used in RT processing, as it allocates memory
+	static void calculateReal(T* fftBuffer, long length)
+	{
+		T* buffer = new T[length * 2];
+
+		for (int i = 0; i < length; ++i)
+		{
+			buffer[i * 2] = fftBuffer[i];
+			buffer[i * 2 + 1] = 0.;
+		}
+
+		calculateFast(buffer, length, false);
+		memcpy(fftBuffer, buffer, sizeof(T) * length);
+
+		delete[] buffer;
+	}
+
 	static void calculateFast(T* fftBuffer, long fftFrameSize, bool inverse = false)
 		/*
 		FFT routine, (C)1996 S.M.Bernsee. Sign = -1 is FFT, 1 is iFFT (inverse)
