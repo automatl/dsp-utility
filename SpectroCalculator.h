@@ -37,7 +37,7 @@ namespace tomatl { namespace dsp {
 	{
 	public:
 		SpectroCalculator(double sampleRate, std::pair<double, double> attackRelease, size_t index, size_t fftSize = 1024, size_t channelCount = 2) : 
-			mWindowFunction(new WindowFunction<double>(fftSize, WindowFunctionFactory::getWindowCalculator<double>(WindowFunctionFactory::windowHann), true))
+			mWindowFunction(new WindowFunction<T>(fftSize, WindowFunctionFactory::getWindowCalculator<double>(WindowFunctionFactory::windowHann), true))
 		{
 			mData = new std::pair<double, double>[fftSize];
 			memset(mData, 0x0, sizeof(std::pair<double, double>) * fftSize);
